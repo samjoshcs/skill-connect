@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Edit profile — SkillConnect{% endblock %}
+{% block content %}
+
+<section class="auth-page">
+  <div class="auth-card auth-card-wide">
+    <h1>Your profile</h1>
+    <p class="auth-sub">Tell other musicians what you can teach and what you're hoping to learn.</p>
+
+    <form method="POST" class="form">
+      <label for="bio">Short bio</label>
+      <textarea id="bio" name="bio" rows="3" placeholder="e.g. Been playing guitar for 6 years, mostly self-taught on fingerstyle.">{{ current_user.bio }}</textarea>
+
+      <label for="availability">When are you usually free?</label>
+      <input type="text" id="availability" name="availability" placeholder="e.g. Weekday evenings, weekend mornings" value="{{ current_user.availability }}">
+
+      <div class="form-row">
+        <div>
+          <label for="can_teach">I can teach</label>
+          <input type="text" id="can_teach" name="can_teach" placeholder="e.g. Guitar, Flute" value="{{ current_user.can_teach_skills()|map(attribute='skill_name')|join(', ') }}">
+          <p class="field-hint">Separate multiple skills with a comma</p>
+        </div>
+        <div>
+          <label for="proficiency">My level</label>
+          <select id="proficiency" name="proficiency">
+            <option value="beginner">Beginner</option>
+            <option value="intermediate">Intermediate</option>
+            <option value="expert">Expert</option>
+          </select>
+        </div>
+      </div>
+
+      <label for="wants_to_learn">I want to learn</label>
+      <input type="text" id="wants_to_learn" name="wants_to_learn" placeholder="e.g. Piano, Violin" value="{{ current_user.wants_to_learn_skills()|map(attribute='skill_name')|join(', ') }}">
+      <p class="field-hint">Separate multiple skills with a comma</p>
+      <button type="submit" class="btn btn-primary btn-block">Save profile</button>
+    </form>
+  </div>
+</section>
+
+{% endblock %}

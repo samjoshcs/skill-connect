@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Explore — SkillConnect{% endblock %}
+{% block content %}
+
+<section class="matches-page">
+  <h1>Explore musicians</h1>
+  <p class="page-sub">Browse everyone on SkillConnect, not just your matches.</p>
+
+  <form method="GET" class="explore-filter-form">
+    <input
+      type="text"
+      name="skill"
+      value="{{ skill_filter }}"
+      placeholder="Filter by instrument, e.g. Guitar"
+    >
+    <button type="submit" class="btn btn-primary btn-small">Filter</button>
+    {% if skill_filter %}
+      <a href="{{ url_for('main.explore') }}" class="btn btn-ghost btn-small">Clear</a>
+    {% endif %}
+  </form>
+
+  {% if users %}
+    <div class="match-grid">
+      {% for user in users %}
+        <div class="match-card">
+          <h3>{{ user.name }}</h3>
+
+          <div class="match-skills">
+            {% for s in user.can_teach_skills() %}
+              <span class="pill pill-teach">Teaches {{ s.skill_name }} · {{ s.proficiency }}</span>
+            {% endfor %}
+            {% for s in user.wants_to_learn_skills() %}
+              <span class="pill pill-learn">Wants {{ s.skill_name }}</span>
+            {% endfor %}
+          </div>
+
+          {% if user.availability %}
+            <p class="match-availability">🕒 {{ user.availability }}</p>
+          {% endif %}
+
+          {% set avg = user.average_rating() %}
+          {% if avg %}
+            <p class="match-rating">⭐ {{ avg }} average rating</p>
+          {% endif %}
+
+          {% if user.id in sent_to_ids %}
+            <button class="btn btn-ghost btn-block" disabled>Request sent</button>
+          {% else %}
+            <form method="POST" action="{{ url_for('main.send_request', user_id=user.id) }}">
+              <button type="submit" class="btn btn-primary btn-block">Request exchange</button>
+            </form>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="empty-note">
+      {% if skill_filter %}
+        No one matches "{{ skill_filter }}" yet — try a different search.
+      {% else %}
+        No one else has set up their profile yet.
+      {% endif %}
+    </p>
+  {% endif %}
+
+</section>
+
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Messages — SkillConnect{% endblock %}
+{% block content %}
+
+<section class="requests-page">
+  <h1>Messages</h1>
+  <p class="page-sub">Conversations unlock once an exchange request is accepted.</p>
+
+  {% if exchanges %}
+    <div class="request-list">
+      {% for ex in exchanges %}
+        {% set other = ex.recipient if ex.from_user == current_user.id else ex.requester %}
+        <a href="{{ url_for('main.conversation', exchange_id=ex.id) }}" class="request-card conversation-card">
+          <div>
+            <strong>{{ other.name if other else "Unknown user" }}</strong>
+            <span class="status-tag status-{{ ex.status }}">{{ ex.status }}</span>
+          </div>
+          <span class="conversation-arrow">→</span>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="empty-note">No conversations yet — once someone accepts your exchange request (or you accept theirs), you'll be able to message them here.</p>
+  {% endif %}
+
+</section>
+
+{% endblock %}

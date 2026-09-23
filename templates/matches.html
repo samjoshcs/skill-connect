@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Find matches — SkillConnect{% endblock %}
+{% block content %}
+
+<section class="matches-page">
+  <h1>Find someone to trade skills with</h1>
+  <p class="page-sub">People who teach what you want to learn, and want to learn what you teach, show up first.</p>
+
+  {% macro user_card(user, is_mutual, sent_to_ids) %}
+    <div class="match-card">
+      {% if is_mutual %}<span class="badge badge-mutual">Two-way match</span>{% endif %}
+      <h3>{{ user.name }}</h3>
+
+      <div class="match-skills">
+        {% for s in user.can_teach_skills() %}
+          <span class="pill pill-teach">Teaches {{ s.skill_name }} · {{ s.proficiency }}</span>
+        {% endfor %}
+        {% for s in user.wants_to_learn_skills() %}
+          <span class="pill pill-learn">Wants {{ s.skill_name }}</span>
+        {% endfor %}
+      </div>
+
+      {% if user.availability %}
+        <p class="match-availability">🕒 {{ user.availability }}</p>
+      {% endif %}
+
+      {% set avg = user.average_rating() %}
+      {% if avg %}
+        <p class="match-rating">⭐ {{ avg }} average rating</p>
+      {% endif %}
+
+      {% if user.id in sent_to_ids %}
+        <button class="btn btn-ghost btn-block" disabled>Request sent</button>
+      {% else %}
+        <form method="POST" action="{{ url_for('main.send_request', user_id=user.id) }}">
+          <button type="submit" class="btn btn-primary btn-block">Request exchange</button>
+        </form>
+      {% endif %}
+    </div>
+  {% endmacro %}
+
+  <h2 class="section-title">Two-way matches</h2>
+  {% if mutual %}
+    <div class="match-grid">
+      {% for user in mutual %}{{ user_card(user, true, sent_to_ids) }}{% endfor %}
+    </div>
+  {% else %}
+    <p class="empty-note">No two-way matches yet — check the one-directional matches below, or check back later as more people join.</p>
+  {% endif %}
+
+  <h2 class="section-title">Also worth a look</h2>
+  {% if partial %}
+    <div class="match-grid">
+      {% for user in partial %}{{ user_card(user, false, sent_to_ids) }}{% endfor %}
+    </div>
+  {% else %}
+    <p class="empty-note">No matches here yet.</p>
+  {% endif %}
+
+</section>
+
+{% endblock %}

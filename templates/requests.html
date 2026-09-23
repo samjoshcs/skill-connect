@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Requests — SkillConnect{% endblock %}
+{% block content %}
+
+<section class="requests-page">
+  <h1>Exchange requests</h1>
+
+  <h2 class="section-title">Received</h2>
+  {% if received %}
+    <div class="request-list">
+      {% for r in received %}
+        <div class="request-card">
+          <div>
+            <strong>{{ r.requester.name if r.requester else "Someone" }}</strong> wants to exchange skills with you
+            {% if r.message %}<p class="request-msg">"{{ r.message }}"</p>{% endif %}
+            <span class="status-tag status-{{ r.status }}">{{ r.status }}</span>
+          </div>
+          {% if r.status == "pending" %}
+            <div class="request-actions">
+              <form method="POST" action="{{ url_for('main.respond_request', request_id=r.id) }}">
+                <input type="hidden" name="decision" value="accepted">
+                <button type="submit" class="btn btn-primary">Accept</button>
+              </form>
+              <form method="POST" action="{{ url_for('main.respond_request', request_id=r.id) }}">
+                <input type="hidden" name="decision" value="declined">
+                <button type="submit" class="btn btn-ghost">Decline</button>
+              </form>
+            </div>
+          {% elif r.status == "accepted" %}
+            <a href="{{ url_for('main.conversation', exchange_id=r.id) }}" class="btn btn-ghost">Message</a>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="empty-note">No requests received yet.</p>
+  {% endif %}
+
+  <h2 class="section-title">Sent</h2>
+  {% if sent %}
+    <div class="request-list">
+      {% for r in sent %}
+        <div class="request-card">
+          <div>
+            You requested <strong>{{ r.recipient.name if r.recipient else "someone" }}</strong>
+            <span class="status-tag status-{{ r.status }}">{{ r.status }}</span>
+          </div>
+          {% if r.status == "accepted" %}
+            <a href="{{ url_for('main.conversation', exchange_id=r.id) }}" class="btn btn-ghost">Message</a>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="empty-note">You haven't sent any requests yet.</p>
+  {% endif %}
+
+</section>
+
+{% endblock %}

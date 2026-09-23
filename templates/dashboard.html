@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — SkillConnect{% endblock %}
+
+{% block content %}
+
+<div class="dash-hero">
+  <svg class="dash-hero-waveform" viewBox="0 0 1200 300" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M0,220 Q60,120 120,220 T240,220 T360,150 T480,220 T600,90 T720,220 T840,180 T960,220 T1080,140 T1200,220 L1200,300 L0,300 Z" fill="#E3A94B" opacity="0.18"/>
+    <path d="M0,240 Q80,180 160,240 T320,240 T480,190 T640,240 T800,160 T960,240 T1120,200 T1200,240 L1200,300 L0,300 Z" fill="#C1666B" opacity="0.15"/>
+  </svg>
+
+  <div class="dash-hero-topbar">
+    <a href="{{ url_for('main.home') }}" class="hero-brand">
+      <svg width="20" height="20" viewBox="0 0 22 22" fill="none"><path d="M3 13V9M7 16V6M11 18V4M15 15V7M19 12V10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      SkillConnect
+    </a>
+    <div class="dash-hero-nav">
+      <a href="{{ url_for('main.matches') }}" class="hero-pill">Matches</a>
+      <a href="{{ url_for('main.explore') }}" class="hero-pill">Explore</a>
+      <a href="{{ url_for('main.view_requests') }}" class="hero-pill">Requests{% if pending_received %}<span class="hero-pill-badge">{{ pending_received }}</span>{% endif %}</a>
+      <a href="{{ url_for('main.conversations') }}" class="hero-pill">Messages</a>
+      <a href="{{ url_for('main.edit_profile') }}" class="hero-pill">Profile</a>
+      {% if current_user.is_admin %}<a href="{{ url_for('admin.dashboard') }}" class="hero-pill">Admin</a>{% endif %}
+      <a href="{{ url_for('auth.logout') }}" class="hero-pill hero-pill-quiet">Log out</a>
+    </div>
+  </div>
+
+  <div class="dash-hero-center">
+    <p class="dash-hero-eyebrow">{{ greeting }}</p>
+    <h1 class="dash-hero-name">{{ current_user.name.split(' ')[0] }}</h1>
+    <p class="dash-hero-tagline">{{ tagline }}</p>
+  </div>
+</div>
+
+<section class="dashboard">
+
+  {% set teach = current_user.can_teach_skills() %}
+  {% set learn = current_user.wants_to_learn_skills() %}
+
+  {% if not teach and not learn %}
+    <div class="empty-card">
+      <p>Your profile is empty — add what you can teach and what you want to learn so others can find you.</p>
+      <a href="{{ url_for('main.edit_profile') }}" class="btn btn-primary">Complete your profile</a>
+    </div>
+  {% else %}
+    <div class="skill-summary">
+      <div class="skill-block">
+        <span class="skill-label">I can teach</span>
+        <div class="pill-row">
+          {% for s in teach %}
+            <span class="pill pill-teach">{{ s.skill_name }} · {{ s.proficiency }}</span>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="skill-block">
+        <span class="skill-label">I want to learn</span>
+        <div class="pill-row">
+          {% for s in learn %}
+            <span class="pill pill-learn">{{ s.skill_name }}</span>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    <a href="{{ url_for('main.edit_profile') }}" class="btn btn-ghost btn-small">Edit profile</a>
+  {% endif %}
+
+  <p class="section-label">Quick links</p>
+  <div class="dashboard-grid">
+    <a href="{{ url_for('main.matches') }}" class="dash-card">
+      <svg class="dash-card-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35" stroke-linecap="round"/></svg>
+      <h3>Matches</h3>
+      <p>Browse musicians whose skills complement yours.</p>
+    </a>
+    <a href="{{ url_for('main.explore') }}" class="dash-card">
+      <svg class="dash-card-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z" stroke-linejoin="round"/></svg>
+      <h3>Explore</h3>
+      <p>See everyone on SkillConnect and filter by instrument.</p>
+    </a>
+    <a href="{{ url_for('main.view_requests') }}" class="dash-card">
+      <svg class="dash-card-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 12h9M13 12l-3-3M13 12l-3 3" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 12h-9M11 12l3-3M11 12l3 3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <h3>Requests</h3>
+      <p>See exchange requests you've sent or received.</p>
+      {% if pending_received %}<span class="dash-card-badge">{{ pending_received }}</span>{% endif %}
+    </a>
+    <a href="{{ url_for('main.conversations') }}" class="dash-card">
+      <svg class="dash-card-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 11.5a8.38 8.38 0 0 1-1.9 5.4L21 21l-4.1-1.1a8.5 8.5 0 1 1 4.1-8.4Z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <h3>Messages</h3>
+      <p>Chat with musicians you've matched with.</p>
+    </a>
+  </div>
+</section>
+
+{% endblock %}

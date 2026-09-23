@@ -1,0 +1,21 @@
+# Python cache files - auto-generated, no need to track
+__pycache__/
+*.pyc
+
+# Local database - test data, should regenerate fresh on any machine
+skillconnect.db
+
+# User-uploaded files - not code, shouldn't be in version control
+static/uploads/*
+!static/uploads/.gitkeep
+
+# Virtual environment (if you create one) - huge, machine-specific
+venv/
+env/
+
+# OS-specific junk files
+.DS_Store
+Thumbs.db
+
+# Editor settings
+.vscode/

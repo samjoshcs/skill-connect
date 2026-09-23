@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}SkillConnect — Trade skills, not money{% endblock %}
+{% block content %}
+
+<div class="home-hero">
+  <svg class="dash-hero-waveform" viewBox="0 0 1200 300" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M0,220 Q60,120 120,220 T240,220 T360,150 T480,220 T600,90 T720,220 T840,180 T960,220 T1080,140 T1200,220 L1200,300 L0,300 Z" fill="#E3A94B" opacity="0.18"/>
+    <path d="M0,240 Q80,180 160,240 T320,240 T480,190 T640,240 T800,160 T960,240 T1120,200 T1200,240 L1200,300 L0,300 Z" fill="#C1666B" opacity="0.15"/>
+  </svg>
+
+  <div class="dash-hero-topbar">
+    <a href="{{ url_for('main.home') }}" class="hero-brand">
+      <svg width="20" height="20" viewBox="0 0 22 22" fill="none"><path d="M3 13V9M7 16V6M11 18V4M15 15V7M19 12V10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      SkillConnect
+    </a>
+    <div class="dash-hero-nav">
+      <a href="{{ url_for('auth.login') }}" class="hero-pill hero-pill-quiet">Log in</a>
+      <a href="{{ url_for('auth.signup') }}" class="hero-pill">Sign up</a>
+    </div>
+  </div>
+
+  <div class="home-hero-center">
+    <p class="dash-hero-eyebrow">Free · Peer-to-peer · Musicians only</p>
+    <h1 class="home-hero-title">Teach what you play.<br>Learn what you don't.</h1>
+    <p class="home-hero-sub">List an instrument you can teach and one you want to learn. SkillConnect matches you with someone whose skills complete yours — no fees, just a fair trade.</p>
+
+    <div class="home-hero-actions">
+      <a href="{{ url_for('auth.signup') }}" class="btn btn-primary">Get started</a>
+      <a href="#how" class="hero-pill">How it works</a>
+    </div>
+  </div>
+</div>
+
+<section id="how" class="how-it-works">
+  <div class="step">
+    <svg class="step-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 12h8M12 8v8" stroke-linecap="round"/></svg>
+    <h3>List your skills</h3>
+    <p>What you can teach, and what you want to learn.</p>
+  </div>
+  <div class="step">
+    <svg class="step-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35" stroke-linecap="round"/></svg>
+    <h3>Get matched</h3>
+    <p>We prioritize people whose skills complement yours.</p>
+  </div>
+  <div class="step">
+    <svg class="step-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 11.5a8.38 8.38 0 0 1-1.9 5.4L21 21l-4.1-1.1a8.5 8.5 0 1 1 4.1-8.4Z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <h3>Trade lessons</h3>
+    <p>Message, agree on a time, and start exchanging.</p>
+  </div>
+</section>
+
+<section class="quote-section">
+  <blockquote class="quote-text">"{{ quote_text }}"</blockquote>
+  <span class="quote-author">— {{ quote_author }}</span>
+</section>
+
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Admin — Users — SkillConnect{% endblock %}
+{% block content %}
+
+<section class="admin-page">
+  <div class="admin-header">
+    <h1>Admin</h1>
+    <div class="admin-nav">
+      <a href="{{ url_for('admin.dashboard') }}" class="admin-tab">Overview</a>
+      <a href="{{ url_for('admin.manage_users') }}" class="admin-tab active">Users</a>
+    </div>
+  </div>
+
+  {% if users %}
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Joined</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in users %}
+          <tr>
+            <td>{{ user.name }}{% if user.is_admin %} <span class="badge badge-learning">Admin</span>{% endif %}</td>
+            <td>{{ user.email }}</td>
+            <td>{{ user.created_at.strftime('%d %b %Y') }}</td>
+            <td>
+              {% if user.id != current_user.id %}
+                <form method="POST" action="{{ url_for('admin.delete_user', user_id=user.id) }}" onsubmit="return confirm('Delete {{ user.name }}? This cannot be undone.');">
+                  <button type="submit" class="btn btn-ghost btn-tiny">Delete</button>
+                </form>
+              {% else %}
+                <span class="post-author">(you)</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="empty-note">No users yet.</p>
+  {% endif %}
+</section>
+
+{% endblock %}

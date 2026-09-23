@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Admin — SkillConnect{% endblock %}
+{% block content %}
+
+<section class="admin-page">
+  <div class="admin-header">
+    <h1>Admin</h1>
+    <div class="admin-nav">
+      <a href="{{ url_for('admin.dashboard') }}" class="admin-tab active">Overview</a>
+      <a href="{{ url_for('admin.manage_users') }}" class="admin-tab">Users</a>
+    </div>
+  </div>
+
+  <div class="admin-stats">
+    <div class="admin-stat">
+      <span class="admin-stat-num">{{ total_users }}</span>
+      <span class="admin-stat-label">Total users</span>
+    </div>
+    <div class="admin-stat">
+      <span class="admin-stat-num">{{ total_exchanges_accepted }}</span>
+      <span class="admin-stat-label">Active/completed exchanges</span>
+    </div>
+    <div class="admin-stat">
+      <span class="admin-stat-num">{{ total_pending_requests }}</span>
+      <span class="admin-stat-label">Pending requests</span>
+    </div>
+    <div class="admin-stat">
+      <span class="admin-stat-num">{{ total_ratings }}</span>
+      <span class="admin-stat-label">Ratings given</span>
+    </div>
+  </div>
+
+  <p class="section-label">Most listed skills (can teach)</p>
+  {% if top_skills %}
+    <div class="admin-chart-card">
+      <canvas id="skillsChart" height="90"></canvas>
+    </div>
+  {% else %}
+    <p class="empty-note">No skills listed yet.</p>
+  {% endif %}
+</section>
+
+{% if top_skills %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+  const ctx = document.getElementById('skillsChart');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: {{ top_skills | map(attribute=0) | list | tojson }},
+      datasets: [{
+        label: 'Number of people who can teach it',
+        data: {{ top_skills | map(attribute=1) | list | tojson }},
+        backgroundColor: '#E3A94B',
+        borderRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#B3A9C4' }, grid: { display: false } },
+        y: { ticks: { color: '#B3A9C4', stepSize: 1 }, grid: { color: 'rgba(255,255,255,0.06)' } }
+      }
+    }
+  });
+</script>
+{% endif %}
+
+{% endblock %}

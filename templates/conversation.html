@@ -1,0 +1,296 @@
+{% extends "base.html" %}
+{% block title %}Chat with {{ other_user.name if other_user else "..." }} — SkillConnect{% endblock %}
+{% block content %}
+
+<section class="conversation-page">
+  <div class="conversation-header">
+    <a href="{{ url_for('main.conversations') }}" class="back-link">← Messages</a>
+    <div class="conversation-header-row">
+      <div>
+        <h1>{{ other_user.name if other_user else "Unknown user" }}</h1>
+        {% if other_user and other_user.availability %}
+          <p class="page-sub">🕒 {{ other_user.availability }}</p>
+        {% endif %}
+      </div>
+
+      {% if exchange.status == "accepted" %}
+        <form method="POST" action="{{ url_for('main.complete_exchange', exchange_id=exchange.id) }}">
+          <button type="submit" class="btn btn-ghost btn-small">Mark exchange completed</button>
+        </form>
+      {% elif exchange.status == "completed" %}
+        <span class="status-tag status-completed">Completed</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Tabs: only one of Chat / Video / Practice is visible at a time, so they
+       never compete for space on screen. Chat is the default. -->
+  <div class="conv-tabs">
+    <button type="button" class="conv-tab active" data-tab="chat">💬 Chat</button>
+    {% if exchange.status == "accepted" %}
+      <button type="button" class="conv-tab" data-tab="video">🎥 Video call</button>
+    {% endif %}
+    {% if exchange.status in ("accepted", "completed") %}
+      <button type="button" class="conv-tab" data-tab="practice">🎙️ Practice & AI</button>
+    {% endif %}
+    {% if exchange.status == "completed" %}
+      <button type="button" class="conv-tab" data-tab="rating">⭐ Rating</button>
+    {% endif %}
+  </div>
+
+  <!-- === CHAT TAB (default, visible) === -->
+  <div class="conv-tab-panel" data-panel="chat">
+    <div id="chat-box" class="chat-box" data-exchange-id="{{ exchange.id }}">
+      {% for m in messages %}
+        <div class="chat-msg {{ 'chat-msg-me' if m.sender_id == current_user.id else 'chat-msg-them' }}" data-msg-id="{{ m.id }}">
+          <div class="chat-bubble">{{ m.message_text|e }}</div>
+          <span class="chat-time" data-utc="{{ m.created_at.isoformat() }}Z"></span>
+        </div>
+      {% endfor %}
+    </div>
+
+    <form id="message-form" class="chat-input-row">
+      <input type="text" id="message-input" name="message_text" placeholder="Type a message... you can paste a link too" autocomplete="off" required>
+      <button type="submit" class="btn btn-primary">Send</button>
+    </form>
+  </div>
+
+  <!-- === VIDEO TAB (hidden until selected) === -->
+  {% if exchange.status == "accepted" %}
+    <div class="conv-tab-panel" data-panel="video" hidden>
+      <div id="video-panel" class="video-panel">
+        <iframe
+          id="video-frame"
+          data-src="https://meet.jit.si/{{ video_room }}"
+          allow="camera; microphone; fullscreen; display-capture; autoplay"
+          title="Video call">
+        </iframe>
+        <p class="video-hint">This opens a free Jitsi Meet room shared only between you two. You can also <a href="https://meet.jit.si/{{ video_room }}" target="_blank" rel="noopener">open it in a new tab</a> instead.</p>
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- === PRACTICE & AI FEEDBACK TAB (hidden until selected) === -->
+  {% if exchange.status in ("accepted", "completed") %}
+    <div class="conv-tab-panel" data-panel="practice" hidden>
+      <div class="practice-panel">
+        <p class="page-sub-sm">One of you uploads a reference recording, the other uploads their practice attempt — then get a few AI-generated tips comparing the two.</p>
+
+        <div class="audio-upload-row">
+          <form method="POST" action="{{ url_for('main.upload_audio', exchange_id=exchange.id) }}" enctype="multipart/form-data" class="audio-upload-form">
+            <select name="note_type">
+              <option value="reference">Reference recording</option>
+              <option value="practice">My practice attempt</option>
+            </select>
+            <input type="file" name="audio_file" accept="audio/*" required>
+            <button type="submit" class="btn btn-ghost btn-small">Upload</button>
+          </form>
+
+          <form method="POST" action="{{ url_for('main.get_feedback', exchange_id=exchange.id) }}">
+            <button type="submit" class="btn btn-primary btn-small">✨ Get AI feedback</button>
+          </form>
+        </div>
+
+        {% if audio_notes %}
+          <div class="audio-note-list">
+            {% for note in audio_notes %}
+              <div class="audio-note">
+                <div class="audio-note-meta">
+                  <span class="badge {{ 'badge-learning' if note.note_type == 'reference' else 'badge-question' }}">
+                    {{ 'Reference' if note.note_type == 'reference' else 'Practice attempt' }}
+                  </span>
+                  <span class="audio-note-author">{{ note.uploader.name if note.uploader else "Someone" }}</span>
+                </div>
+                <audio controls src="{{ url_for('static', filename=note.file_path) }}"></audio>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        {% if feedback_entries %}
+          <div class="feedback-list">
+            {% for fb in feedback_entries %}
+              <div class="feedback-card">
+                <span class="feedback-label">✨ AI Feedback</span>
+                <p>{{ fb.feedback_text }}</p>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- === RATING TAB (hidden until selected) === -->
+  {% if exchange.status == "completed" %}
+    <div class="conv-tab-panel" data-panel="rating" hidden>
+      <div class="rating-panel">
+        {% if my_rating %}
+          <p class="rating-done">You rated this exchange {{ my_rating.rating }}/5 {% if my_rating.comment %}— "{{ my_rating.comment }}"{% endif %}</p>
+        {% else %}
+          <form method="POST" action="{{ url_for('main.rate_exchange', exchange_id=exchange.id) }}" class="rating-form">
+            <p class="rating-prompt">How was your exchange with {{ other_user.name if other_user else "them" }}?</p>
+            <div class="star-select">
+              {% for i in range(1, 6) %}
+                <label class="star-option">
+                  <input type="radio" name="rating" value="{{ i }}" {% if i == 5 %}checked{% endif %}>
+                  <span>{{ i }}★</span>
+                </label>
+              {% endfor %}
+            </div>
+            <input type="text" name="comment" placeholder="Optional comment" class="rating-comment">
+            <button type="submit" class="btn btn-primary btn-small">Submit rating</button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+
+</section>
+
+<script>
+(function () {
+  // --- Tab switching ---
+  // Only one panel is shown at a time. Switching away from the video tab
+  // doesn't stop the call — the iframe keeps running in the background,
+  // it's just visually hidden, so audio/video isn't interrupted if someone
+  // switches to Chat mid-call.
+  const tabButtons = document.querySelectorAll(".conv-tab");
+  const tabPanels = document.querySelectorAll(".conv-tab-panel");
+
+  function activateTab(target) {
+    // Guard against an invalid/missing tab name (e.g. someone editing the
+    // URL by hand) — just fall back to chat instead of showing nothing.
+    const matchingButton = document.querySelector(`.conv-tab[data-tab="${target}"]`);
+    if (!matchingButton) target = "chat";
+
+    tabButtons.forEach(function (b) { b.classList.remove("active"); });
+    tabPanels.forEach(function (panel) {
+      if (panel.dataset.panel === target) {
+        panel.removeAttribute("hidden");
+      } else {
+        panel.setAttribute("hidden", "");
+      }
+    });
+    const btnToActivate = document.querySelector(`.conv-tab[data-tab="${target}"]`);
+    if (btnToActivate) btnToActivate.classList.add("active");
+
+    if (target === "chat") {
+      scrollToBottom();
+    }
+  }
+
+  tabButtons.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      activateTab(btn.dataset.tab);
+    });
+  });
+
+  // After actions like uploading audio, requesting AI feedback, or
+  // submitting a rating, the server redirects back here with ?tab=practice
+  // (or ?tab=rating) in the URL — so instead of always landing back on
+  // Chat, we open the tab that actually has the new content to show.
+  const requestedTab = new URLSearchParams(window.location.search).get("tab");
+  if (requestedTab) {
+    activateTab(requestedTab);
+  }
+
+  const chatBox = document.getElementById("chat-box");
+  const exchangeId = chatBox.dataset.exchangeId;
+  const form = document.getElementById("message-form");
+  const input = document.getElementById("message-input");
+
+  // Messages are stored on the server in UTC (good practice — avoids
+  // ambiguity), so we convert to the viewer's own local time here in the
+  // browser, using whatever timezone their device is actually set to.
+  function formatLocalTime(utcIsoString) {
+    const date = new Date(utcIsoString);
+    return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  }
+
+  // Fill in the correct local time for messages that were already on the
+  // page when it loaded (they were rendered with a raw UTC data-utc
+  // attribute and no visible text yet).
+  document.querySelectorAll(".chat-time[data-utc]").forEach(function (el) {
+    el.textContent = formatLocalTime(el.dataset.utc);
+  });
+
+  // --- Video call lazy-load ---
+  // The iframe has no src at all until the Video tab is opened for the
+  // first time — so visiting the chat page never silently connects to a
+  // video room in the background.
+  const videoFrame = document.getElementById("video-frame");
+  if (videoFrame) {
+    const videoTabBtn = document.querySelector('.conv-tab[data-tab="video"]');
+    videoTabBtn.addEventListener("click", function () {
+      if (!videoFrame.getAttribute("src")) {
+        videoFrame.setAttribute("src", videoFrame.dataset.src);
+      }
+    }, { once: true }); // only need to set the src the first time
+  }
+
+  // Track the id of the newest message currently shown, so polling only
+  // asks the server for anything newer than this — not the whole conversation.
+  function getLastId() {
+    const msgs = chatBox.querySelectorAll(".chat-msg");
+    if (msgs.length === 0) return 0;
+    return parseInt(msgs[msgs.length - 1].dataset.msgId, 10);
+  }
+
+  function scrollToBottom() {
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }
+  scrollToBottom();
+
+  function appendMessage(msg) {
+    const div = document.createElement("div");
+    div.className = "chat-msg " + (msg.is_me ? "chat-msg-me" : "chat-msg-them");
+    div.dataset.msgId = msg.id;
+    const localTime = formatLocalTime(msg.created_at_utc);
+    div.innerHTML = `<div class="chat-bubble">${msg.text}</div><span class="chat-time">${localTime}</span>`;
+    chatBox.appendChild(div);
+  }
+
+  // This is the "live-ish" part: quietly check for new messages every few
+  // seconds using fetch(), and add any new ones to the page — no full
+  // page reload, so nothing visibly flickers or jumps.
+  async function poll() {
+    try {
+      const res = await fetch(`/conversation/${exchangeId}/poll?after_id=${getLastId()}`);
+      const newMessages = await res.json();
+      if (newMessages.length > 0) {
+        newMessages.forEach(appendMessage);
+        scrollToBottom();
+      }
+    } catch (err) {
+      console.error("Polling failed:", err);
+    }
+  }
+  setInterval(poll, 3000);
+
+  // Send a message without a full page reload, using the same trick —
+  // just a background fetch request, then clear the input.
+  form.addEventListener("submit", async function (e) {
+    e.preventDefault();
+    const text = input.value.trim();
+    if (!text) return;
+
+    const formData = new FormData();
+    formData.append("message_text", text);
+
+    input.value = "";
+    input.disabled = true;
+
+    await fetch(`/conversation/${exchangeId}/send`, {
+      method: "POST",
+      body: formData,
+    });
+
+    input.disabled = false;
+    input.focus();
+    poll(); // check immediately instead of waiting up to 3 seconds
+  });
+})();
+</script>
+
+{% endblock %}
