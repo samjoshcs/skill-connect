@@ -5,9 +5,11 @@
 
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
+from authlib.integrations.flask_client import OAuth
 
 db = SQLAlchemy()
 login_manager = LoginManager()
+oauth = OAuth()  # handles the 'Continue with Google' flow
 
 # If someone tries to access a page that needs login without being logged in,
 # Flask-Login redirects them here automatically.

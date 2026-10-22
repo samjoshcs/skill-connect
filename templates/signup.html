@@ -5,20 +5,12 @@
 <section class="auth-page">
   <div class="auth-card">
     <h1>Create your account</h1>
-    <p class="auth-sub">Join for free — you'll list your skills next.</p>
+    <p class="auth-sub">Sign up with your Google account — quick and secure. You'll list your skills next.</p>
 
-    <form method="POST" class="form">
-      <label for="name">Name</label>
-      <input type="text" id="name" name="name" placeholder="Your full name" required>
-
-      <label for="email">Email</label>
-      <input type="email" id="email" name="email" placeholder="you@example.com" required>
-
-      <label for="password">Password</label>
-      <input type="password" id="password" name="password" placeholder="At least 6 characters" required minlength="6">
-
-      <button type="submit" class="btn btn-primary btn-block">Sign up</button>
-    </form>
+    <a href="{{ url_for('auth.google_login') }}" class="btn-google">
+      {% include "_google_icon.html" %}
+      Continue with Google
+    </a>
 
     <p class="auth-switch">Already have an account? <a href="{{ url_for('auth.login') }}">Log in</a></p>
   </div>

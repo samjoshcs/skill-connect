@@ -979,3 +979,167 @@ a { color: inherit; text-decoration: none; }
   .form-row { grid-template-columns: 1fr; }
   .hero h1 { font-size: 2rem; }
 }
+
+/* --- Google sign-in button --- */
+.btn-google {
+  display: flex; align-items: center; justify-content: center; gap: 0.7rem;
+  width: 100%; padding: 0.8rem 1rem; margin-top: 0.4rem;
+  background: #fff; color: #3c4043; font-weight: 600; font-size: 0.95rem;
+  border: 1px solid #dadce0; border-radius: 10px; text-decoration: none;
+  transition: box-shadow 0.15s, background 0.15s;
+}
+.btn-google:hover { background: #f8f9fa; box-shadow: 0 1px 4px rgba(0,0,0,0.15); }
+.auth-divider { display: flex; align-items: center; gap: 0.8rem; margin: 1.4rem 0 1rem; color: var(--text-muted); font-size: 0.8rem; }
+.auth-divider::before, .auth-divider::after { content: ""; flex: 1; height: 1px; background: #e2e2e2; }
+
+/* =====================================================================
+   Practice Studio (Practice & AI tab)
+   ===================================================================== */
+.pr { display: flex; flex-direction: column; gap: 1.2rem; }
+
+/* Hero banner with animated equaliser bars */
+.pr-hero {
+  position: relative; overflow: hidden; display: flex; align-items: center; gap: 1.4rem;
+  padding: 1.6rem 1.8rem; border-radius: var(--radius-lg);
+  background: linear-gradient(120deg, #3a2b52 0%, #5a2f4f 55%, #8a4a4a 100%);
+  border: 1px solid var(--border);
+}
+.pr-hero-text h2 { margin: 0 0 0.3rem; font-size: 1.5rem; }
+.pr-hero-text p { margin: 0; color: rgba(243, 239, 233, 0.82); font-size: 0.93rem; max-width: 46ch; }
+.pr-eq { display: flex; align-items: flex-end; gap: 4px; height: 56px; flex-shrink: 0; }
+.pr-eq span {
+  width: 6px; border-radius: 3px; background: var(--accent);
+  height: 30%; animation: pr-bounce 1.1s ease-in-out infinite;
+}
+.pr-eq span:nth-child(1) { animation-delay: -0.9s; }
+.pr-eq span:nth-child(2) { animation-delay: -0.7s; }
+.pr-eq span:nth-child(3) { animation-delay: -0.5s; }
+.pr-eq span:nth-child(4) { animation-delay: -0.3s; }
+.pr-eq span:nth-child(5) { animation-delay: -0.8s; }
+.pr-eq span:nth-child(6) { animation-delay: -0.4s; }
+.pr-eq span:nth-child(7) { animation-delay: -0.6s; }
+.pr-eq span:nth-child(8) { animation-delay: -0.2s; }
+@keyframes pr-bounce { 0%, 100% { height: 18%; } 50% { height: 100%; } }
+
+/* Progress steps */
+.pr-progress { display: flex; gap: 0.6rem; list-style: none; margin: 0; padding: 0; flex-wrap: wrap; }
+.pr-progress li {
+  flex: 1; min-width: 150px; display: flex; align-items: center; gap: 0.6rem;
+  padding: 0.6rem 0.9rem; border-radius: 999px; font-size: 0.85rem; font-weight: 600;
+  background: var(--surface); border: 1px solid var(--border); color: var(--text-muted);
+}
+.pr-progress li span {
+  display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%;
+  background: var(--surface-2); font-size: 0.78rem;
+}
+.pr-progress li.active { border-color: var(--accent); color: var(--text); }
+.pr-progress li.active span { background: var(--accent); color: #201A12; }
+.pr-progress li.done { border-color: var(--success); color: var(--success); }
+.pr-progress li.done span { background: var(--success); color: #12261c; }
+.pr-progress li.done span::before { content: "✓"; }
+.pr-progress li.done span { font-size: 0; }
+.pr-progress li.done span::before { font-size: 0.78rem; }
+
+/* Cards */
+.pr-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+@media (max-width: 760px) { .pr-grid { grid-template-columns: 1fr; } .pr-hero { flex-direction: column; align-items: flex-start; } }
+.pr-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 1.3rem 1.4rem; display: flex; flex-direction: column; gap: 0.9rem;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.pr-card:hover { border-color: rgba(227, 169, 75, 0.45); }
+.pr-card-head { display: flex; align-items: center; gap: 0.7rem; }
+.pr-card-head h3 { margin: 0; font-size: 1.05rem; }
+.pr-step {
+  display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%;
+  background: var(--accent); color: #201A12; font-weight: 700; font-size: 0.85rem; flex-shrink: 0;
+}
+.pr-step-wine { background: var(--accent-2); color: #fff; }
+.pr-hint { margin: 0; color: var(--text-muted); font-size: 0.88rem; }
+
+/* Locked cards */
+.pr-locked { opacity: 0.6; border-style: dashed; }
+.pr-lock-msg {
+  display: flex; align-items: center; gap: 0.6rem; padding: 0.9rem 1rem;
+  border-radius: var(--radius); background: var(--surface-2); color: var(--text-muted); font-size: 0.9rem;
+}
+
+/* Empty state */
+.pr-empty { text-align: center; padding: 1.2rem 0.5rem; color: var(--text-muted); }
+.pr-empty-icon { font-size: 2rem; display: block; margin-bottom: 0.3rem; }
+.pr-empty p { margin: 0 0 0.2rem; }
+
+/* Upload drop box */
+.pr-upload { display: flex; flex-direction: column; gap: 0.7rem; }
+.pr-drop {
+  display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.25rem;
+  padding: 1.3rem 1rem; cursor: pointer; border-radius: var(--radius);
+  border: 2px dashed rgba(243, 239, 233, 0.22); background: var(--surface-2);
+  transition: border-color 0.15s, background 0.15s;
+}
+.pr-drop:hover, .pr-drop.dragging { border-color: var(--accent); background: var(--accent-soft); }
+.pr-drop.has-file { border-style: solid; border-color: var(--success); }
+.pr-drop input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.pr-drop-icon { font-size: 1.5rem; }
+.pr-drop-title { font-weight: 600; }
+.pr-drop-sub { color: var(--text-muted); font-size: 0.78rem; word-break: break-all; }
+.pr-upload-btn { align-self: flex-start; }
+.pr-upload-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Audio track cards */
+.pr-track {
+  display: flex; flex-direction: column; gap: 0.6rem; padding: 0.85rem 1rem;
+  border-radius: var(--radius); background: var(--surface-2); border-left: 4px solid var(--accent);
+}
+.pr-track-wine { border-left-color: var(--accent-2); }
+.pr-track-top { display: flex; align-items: center; gap: 0.7rem; }
+.pr-track-top strong { display: block; font-size: 0.92rem; }
+.pr-track-label { display: block; color: var(--text-muted); font-size: 0.76rem; }
+.pr-track audio { width: 100%; height: 38px; color-scheme: dark; }
+.pr-avatar {
+  display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%;
+  font-weight: 700; flex-shrink: 0; color: #201A12; background: var(--accent);
+}
+.pr-avatar-wine { background: var(--accent-2); color: #fff; }
+
+/* "More" accordions */
+.pr-more summary { cursor: pointer; color: var(--text-muted); font-size: 0.85rem; padding: 0.3rem 0; }
+.pr-more summary:hover { color: var(--accent); }
+.pr-more[open] { display: flex; flex-direction: column; gap: 0.6rem; }
+
+/* AI coach */
+.pr-ai { position: relative; }
+.pr-ai:not(.pr-locked) { border-color: rgba(227, 169, 75, 0.35); background: linear-gradient(160deg, var(--surface) 0%, #2f2540 100%); }
+.pr-ai-btn { align-self: flex-start; padding: 0.8rem 1.4rem; font-size: 0.98rem; box-shadow: 0 6px 20px rgba(227, 169, 75, 0.25); }
+.pr-ai-btn:disabled { opacity: 0.85; cursor: progress; }
+.pr-ai-loading { display: inline-flex; align-items: center; gap: 0.6rem; }
+.pr-ai-loading[hidden], .pr-ai-label[hidden] { display: none; }
+.pr-spinner {
+  width: 16px; height: 16px; border-radius: 50%; display: inline-block;
+  border: 2px solid rgba(32, 26, 18, 0.3); border-top-color: #201A12; animation: pr-spin 0.8s linear infinite;
+}
+@keyframes pr-spin { to { transform: rotate(360deg); } }
+
+.pr-feedback-list { display: flex; flex-direction: column; gap: 0.9rem; margin-top: 0.4rem; }
+.pr-feedback {
+  padding: 1rem 1.2rem; border-radius: var(--radius); background: rgba(0, 0, 0, 0.18);
+  border: 1px solid var(--border);
+}
+.pr-feedback-latest { border-color: var(--accent); background: linear-gradient(135deg, var(--accent-soft), rgba(193, 102, 107, 0.12)); }
+.pr-feedback-head { display: flex; align-items: center; gap: 0.7rem; margin-bottom: 0.6rem; }
+.pr-feedback-head strong { display: block; font-size: 0.92rem; }
+.pr-feedback-body p { margin: 0 0 0.5rem; line-height: 1.55; }
+.pr-feedback-body ul { margin: 0.2rem 0 0; padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.45rem; }
+.pr-feedback-body li { line-height: 1.5; }
+.pr-feedback-body li::marker { color: var(--accent); }
+
+@media (prefers-reduced-motion: reduce) {
+  .pr-eq span, .pr-spinner { animation: none; }
+  .pr-eq span { height: 60%; }
+}
+
+/* Video players in the Practice Studio */
+.pr-track video {
+  width: 100%; max-height: 320px; border-radius: 10px; background: #000; color-scheme: dark;
+}

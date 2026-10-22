@@ -1,4 +1,6 @@
 import hashlib
+import re
+from markupsafe import Markup, escape
 import os
 import random
 import uuid
@@ -16,6 +18,8 @@ from config import Config, BASE_DIR
 from ai_feedback import get_practice_feedback
 
 ALLOWED_AUDIO_EXTENSIONS = {"mp3", "wav", "m4a", "ogg", "webm"}
+ALLOWED_VIDEO_EXTENSIONS = {"mp4", "mov", "m4v", "webm"}
+ALLOWED_MEDIA_EXTENSIONS = ALLOWED_AUDIO_EXTENSIONS | ALLOWED_VIDEO_EXTENSIONS
 
 TAGLINES = [
     "Someone's out there waiting to learn what you know.",
@@ -298,8 +302,25 @@ def conversation(exchange_id):
             exchange_request_id=exchange.id, from_user=current_user.id
         ).first()
 
-    audio_notes = AudioNote.query.filter_by(exchange_request_id=exchange.id).order_by(AudioNote.created_at.desc()).all()
+    # --- Practice Studio data ---
+    # Each person can share reference music AND record attempts. Feedback for
+    # ME compares the OTHER person's latest reference with MY latest attempt.
+    all_notes = AudioNote.query.filter_by(exchange_request_id=exchange.id).order_by(AudioNote.created_at.desc()).all()
+    partner_refs = [n for n in all_notes if n.note_type == "reference" and n.uploaded_by == other_user.id]
+    my_refs = [n for n in all_notes if n.note_type == "reference" and n.uploaded_by == current_user.id]
+    my_attempts = [n for n in all_notes if n.note_type == "practice" and n.uploaded_by == current_user.id]
+    partner_attempts = [n for n in all_notes if n.note_type == "practice" and n.uploaded_by == other_user.id]
+
+    latest_partner_ref = partner_refs[0] if partner_refs else None
+    my_latest_attempt = my_attempts[0] if my_attempts else None
+
     feedback_entries = AIFeedback.query.filter_by(exchange_request_id=exchange.id).order_by(AIFeedback.created_at.desc()).all()
+    feedback_done = bool(
+        my_latest_attempt and latest_partner_ref and any(
+            fb.practice_note_id == my_latest_attempt.id and fb.reference_note_id == latest_partner_ref.id
+            for fb in feedback_entries
+        )
+    )
 
     return render_template(
         "conversation.html",
@@ -308,9 +329,42 @@ def conversation(exchange_id):
         messages=messages,
         my_rating=my_rating,
         video_room=_video_room_name(exchange.id),
-        audio_notes=audio_notes,
+        partner_refs=partner_refs,
+        my_refs=my_refs,
+        my_attempts=my_attempts,
+        partner_attempts=partner_attempts,
+        latest_partner_ref=latest_partner_ref,
+        my_latest_attempt=my_latest_attempt,
         feedback_entries=feedback_entries,
+        feedback_done=feedback_done,
     )
+
+
+@main_bp.app_template_filter("format_feedback")
+def format_feedback(text):
+    """Turns the AI's plain text into tidy HTML: paragraphs, bullet lists, **bold**.
+    Everything is escaped first, so AI output can never inject HTML."""
+    html, in_list = [], False
+    for raw in (text or "").splitlines():
+        line = raw.strip()
+        if not line:
+            if in_list:
+                html.append("</ul>"); in_list = False
+            continue
+        safe = str(escape(line))
+        safe = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", safe)
+        m = re.match(r"^(?:[-*\u2022]|\d+[.)])\s+(.*)$", safe)
+        if m:
+            if not in_list:
+                html.append("<ul>"); in_list = True
+            html.append(f"<li>{m.group(1)}</li>")
+        else:
+            if in_list:
+                html.append("</ul>"); in_list = False
+            html.append(f"<p>{safe}</p>")
+    if in_list:
+        html.append("</ul>")
+    return Markup("".join(html))
 
 
 @main_bp.route("/conversation/<int:exchange_id>/send", methods=["POST"])
@@ -431,7 +485,7 @@ def rate_exchange(exchange_id):
 
 
 def _allowed_audio_file(filename):
-    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_AUDIO_EXTENSIONS
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_MEDIA_EXTENSIONS
 
 
 @main_bp.route("/conversation/<int:exchange_id>/upload_audio", methods=["POST"])
@@ -444,13 +498,24 @@ def upload_audio(exchange_id):
     audio_file = request.files.get("audio_file")
     note_type = request.form.get("note_type", "practice")
 
+    # An attempt only makes sense once the OTHER person has shared a reference.
+    if note_type == "practice":
+        partner_has_reference = AudioNote.query.filter(
+            AudioNote.exchange_request_id == exchange.id,
+            AudioNote.note_type == "reference",
+            AudioNote.uploaded_by != current_user.id,
+        ).first()
+        if not partner_has_reference:
+            flash("Your partner hasn't shared a reference yet — you can upload your attempt once they do.", "error")
+            return redirect(url_for("main.conversation", exchange_id=exchange.id, tab="practice"))
+
     if not audio_file or audio_file.filename == "":
-        flash("Please choose an audio file to upload.", "error")
-        return redirect(url_for("main.conversation", exchange_id=exchange.id))
+        flash("Please choose an audio or video file to upload.", "error")
+        return redirect(url_for("main.conversation", exchange_id=exchange.id, tab="practice"))
 
     if not _allowed_audio_file(audio_file.filename):
-        flash("Please upload an audio file (mp3, wav, m4a, ogg, or webm).", "error")
-        return redirect(url_for("main.conversation", exchange_id=exchange.id))
+        flash("Please upload an audio (mp3, wav, m4a, ogg) or video (mp4, mov, webm) file.", "error")
+        return redirect(url_for("main.conversation", exchange_id=exchange.id, tab="practice"))
 
     # Save with a random filename to avoid two different uploads accidentally
     # overwriting each other if they happen to share the same original name.
@@ -472,7 +537,7 @@ def upload_audio(exchange_id):
         note_type=note_type if note_type in ("reference", "practice") else "practice",
     ))
     db.session.commit()
-    flash("Audio uploaded!", "success")
+    flash("Reference shared!" if note_type == "reference" else "Attempt uploaded! Ready for AI feedback.", "success")
     return redirect(url_for("main.conversation", exchange_id=exchange.id, tab="practice"))
 
 
@@ -483,16 +548,21 @@ def get_feedback(exchange_id):
     if not exchange:
         return redirect(url_for("main.conversations"))
 
-    latest_reference = AudioNote.query.filter_by(
-        exchange_request_id=exchange.id, note_type="reference"
+    # Compare the OTHER person's latest reference with MY latest attempt.
+    latest_reference = AudioNote.query.filter(
+        AudioNote.exchange_request_id == exchange.id,
+        AudioNote.note_type == "reference",
+        AudioNote.uploaded_by != current_user.id,
     ).order_by(AudioNote.created_at.desc()).first()
 
-    latest_practice = AudioNote.query.filter_by(
-        exchange_request_id=exchange.id, note_type="practice"
+    latest_practice = AudioNote.query.filter(
+        AudioNote.exchange_request_id == exchange.id,
+        AudioNote.note_type == "practice",
+        AudioNote.uploaded_by == current_user.id,
     ).order_by(AudioNote.created_at.desc()).first()
 
     if not latest_reference or not latest_practice:
-        flash("You need both a reference recording and a practice recording before requesting feedback.", "error")
+        flash("You need your partner's reference music and your own attempt before requesting feedback.", "error")
         return redirect(url_for("main.conversation", exchange_id=exchange.id, tab="practice"))
 
     reference_full_path = os.path.join(BASE_DIR, "static", latest_reference.file_path)

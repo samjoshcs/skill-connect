@@ -1,8 +1,9 @@
 from flask import Flask, render_template
 from flask_login import current_user
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from config import Config
-from extensions import db, login_manager
+from extensions import db, login_manager, oauth
 from models import User
 
 
@@ -15,9 +16,23 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
+    # On Render the app sits behind a proxy that handles https. This makes
+    # Flask build correct https:// links (needed for Google's redirect URL).
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
     # Attach our shared extensions (db, login_manager) to this specific app.
     db.init_app(app)
     login_manager.init_app(app)
+
+    # Register Google as a login provider (OpenID Connect).
+    oauth.init_app(app)
+    oauth.register(
+        name="google",
+        client_id=app.config["GOOGLE_CLIENT_ID"],
+        client_secret=app.config["GOOGLE_CLIENT_SECRET"],
+        server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
+        client_kwargs={"scope": "openid email profile"},
+    )
 
     # Register blueprints — each blueprint is one "feature module" of routes.
     from auth.routes import auth_bp
@@ -31,6 +46,12 @@ def create_app():
     # Create all database tables if they don't exist yet.
     with app.app_context():
         db.create_all()
+
+    @app.errorhandler(413)
+    def file_too_large(_e):
+        from flask import flash, redirect, request, url_for
+        flash("That file is too big — the limit is 50 MB. Try a shorter clip.", "error")
+        return redirect(request.referrer or url_for("main.dashboard"))
 
     return app
 

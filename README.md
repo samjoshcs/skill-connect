@@ -3,7 +3,7 @@
 ## What's built so far
 - Full folder structure (Flask "application factory" pattern with blueprints)
 - Database models for all 5 tables (users, user_skills, exchange_requests, messages, ratings, plus audio_notes and ai_feedback for the AI feature)
-- **Auth module — fully working:** signup, login, logout (passwords hashed, never stored in plain text)
+- **Auth module — fully working:** Google sign-in (verified real emails), password login for older accounts, logout (passwords hashed, never stored in plain text)
 - **Profile module — fully working:** edit bio, availability, multiple "can teach" / "wants to learn" skills (comma-separated)
 - **Matches module — fully working:** browse other users, mutual (two-way) matches shown first, one-directional matches shown below
 - **Requests module — fully working:** send an exchange request, view sent/received requests, accept/decline
@@ -34,6 +34,24 @@ The database (`skillconnect.db`) is created automatically the first time you run
 2. You'll be sent straight to your profile — fill in a skill you can teach and one you want to learn
 3. You'll land on the dashboard and see your skills displayed as pills
 4. Try logging out and back in
+
+## Google Login setup (one-time, ~5 minutes)
+
+Users sign up and log in with their real Google account. Google verifies the email, so fake emails can't be used. You need a free Google OAuth "Client ID":
+
+1. Go to [console.cloud.google.com](https://console.cloud.google.com) and create a new project (e.g. `SkillConnect`).
+2. Open **APIs & Services → OAuth consent screen**. Choose **External**, fill in app name + your email, save. Under **Test users**, add the Gmail addresses you'll demo with (while the app is in "Testing" mode only these can log in; click **Publish app** to allow everyone).
+3. Open **APIs & Services → Credentials → Create Credentials → OAuth client ID** → type **Web application**.
+4. Under **Authorized redirect URIs**, add:
+   - `http://127.0.0.1:5000/auth/google/callback` (local)
+   - `https://YOUR-APP.onrender.com/auth/google/callback` (after deploying)
+5. Copy the **Client ID** and **Client Secret**, then set them as environment variables:
+   - Windows (PowerShell): `$env:GOOGLE_CLIENT_ID="..."; $env:GOOGLE_CLIENT_SECRET="..."`
+   - Mac/Linux: `export GOOGLE_CLIENT_ID="..." GOOGLE_CLIENT_SECRET="..."`
+   - Render: add both in **Environment Variables**.
+6. `pip install -r requirements.txt`, then `python app.py`. Open `http://127.0.0.1:5000` (use `127.0.0.1`, not `localhost`, so it matches the redirect URI).
+
+**How it works (for your viva):** the app sends the user to Google (OAuth 2.0 / OpenID Connect). The user signs in on Google's own page — your app never sees their Google password. Google sends back a signed token containing the verified email, and the app logs that user in (creating an account on first visit).
 
 ## Deploying to Render (free hosting)
 
@@ -73,10 +91,16 @@ Render can host this whole app for free — one service handles both your Flask 
 
 Render will build and deploy automatically — this takes a few minutes the first time. You'll get a live URL like `https://skillconnect-xyz.onrender.com`.
 
+### Using Neon instead of Render's database (recommended — free, doesn't expire)
+1. Sign up at [neon.tech](https://neon.tech) (GitHub/Google login works) and create a project named `skillconnect`.
+2. On the project dashboard, click **Connect** and copy the connection string (starts with `postgresql://` and ends with `?sslmode=require`).
+3. In Render, open your web service → **Environment** → set `DATABASE_URL` to that string → save. Render redeploys automatically.
+4. Skip "Step 2: Create the database on Render" above. The app creates all tables on first start, so no other setup is needed.
+
 ### Known limitations on Render's free tier (honest, worth mentioning in your report)
 - **Free web services "sleep"** after 15 minutes of no traffic, and take ~30-50 seconds to wake up on the next visit — normal for free hosting, not a bug in your code.
 - **Uploaded audio files may not persist** across redeploys on the free tier, since the filesystem isn't guaranteed to stick around. A production version would store uploads in cloud storage (e.g. AWS S3) instead — reasonable to mention as future scope.
-- The free PostgreSQL database expires after 90 days on Render's free tier — fine for a semester project, just something to know if you need it live for a long time.
+- **Render's free PostgreSQL database expires 30 days after creation**, with a 14-day grace period before it (and all its data) is deleted. For anything that must stay online, use a free database that doesn't expire — see "Using Neon instead" below.
 
 ## Switching to MySQL later (for your final submission)
 Right now the project uses SQLite because it needs zero setup — perfect while you're actively building. When you're ready to switch to MySQL (as stated in your proposal):

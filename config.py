@@ -28,7 +28,7 @@ class Config:
 
     # --- File uploads (profile audio, voice notes) ---
     UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "uploads")
-    MAX_CONTENT_LENGTH = 10 * 1024 * 1024  # 10 MB max upload size
+    MAX_CONTENT_LENGTH = 50 * 1024 * 1024  # 50 MB max upload size (videos need more room than audio)
 
     # --- Gemini API (for AI voice-note feedback) ---
     # Locally: set this as an environment variable before running the app,
@@ -37,3 +37,9 @@ class Config:
     # dashboard — never commit a real key directly into this file if you're
     # pushing this project to a public GitHub repo.
     GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+
+    # --- Google Sign-In (OAuth) ---
+    # Create these at https://console.cloud.google.com (see README, "Google Login setup").
+    # Locally: set them as environment variables. On Render: add them in the dashboard.
+    GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
+    GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")

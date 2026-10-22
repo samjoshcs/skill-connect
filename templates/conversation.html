@@ -70,55 +70,198 @@
     </div>
   {% endif %}
 
-  <!-- === PRACTICE & AI FEEDBACK TAB (hidden until selected) === -->
+  <!-- === PRACTICE STUDIO TAB (hidden until selected) === -->
   {% if exchange.status in ("accepted", "completed") %}
-    <div class="conv-tab-panel" data-panel="practice" hidden>
-      <div class="practice-panel">
-        <p class="page-sub-sm">One of you uploads a reference recording, the other uploads their practice attempt — then get a few AI-generated tips comparing the two.</p>
 
-        <div class="audio-upload-row">
-          <form method="POST" action="{{ url_for('main.upload_audio', exchange_id=exchange.id) }}" enctype="multipart/form-data" class="audio-upload-form">
-            <select name="note_type">
-              <option value="reference">Reference recording</option>
-              <option value="practice">My practice attempt</option>
-            </select>
-            <input type="file" name="audio_file" accept="audio/*" required>
-            <button type="submit" class="btn btn-ghost btn-small">Upload</button>
-          </form>
+    {# One reusable drag-and-drop upload box. kind = "reference" or "practice". #}
+    {% macro dropzone(exchange_id, kind, icon, title, button_text) %}
+      <form method="POST" action="{{ url_for('main.upload_audio', exchange_id=exchange_id) }}" enctype="multipart/form-data" class="pr-upload" data-pr-upload>
+        <input type="hidden" name="note_type" value="{{ kind }}">
+        <label class="pr-drop">
+          <input type="file" name="audio_file" accept="audio/*,video/*" required>
+          <span class="pr-drop-icon">{{ icon }}</span>
+          <span class="pr-drop-title">{{ title }}</span>
+          <span class="pr-drop-sub" data-pr-filename>Drop an audio or video file here, or click to browse · mp3, m4a, wav, mp4, mov · max 50 MB</span>
+        </label>
+        <button type="submit" class="btn btn-primary btn-small pr-upload-btn" disabled>{{ button_text }}</button>
+      </form>
+    {% endmacro %}
 
-          <form method="POST" action="{{ url_for('main.get_feedback', exchange_id=exchange.id) }}">
-            <button type="submit" class="btn btn-primary btn-small">✨ Get AI feedback</button>
-          </form>
+    {% macro player(note, label, tone) %}
+      <div class="pr-track pr-track-{{ tone }}">
+        <div class="pr-track-top">
+          <span class="pr-avatar pr-avatar-{{ tone }}">{{ (note.uploader.name if note.uploader else "?")[0]|upper }}</span>
+          <div>
+            <strong>{{ note.uploader.name if note.uploader else "Someone" }}</strong>
+            <span class="pr-track-label">{{ label }}</span>
+          </div>
         </div>
-
-        {% if audio_notes %}
-          <div class="audio-note-list">
-            {% for note in audio_notes %}
-              <div class="audio-note">
-                <div class="audio-note-meta">
-                  <span class="badge {{ 'badge-learning' if note.note_type == 'reference' else 'badge-question' }}">
-                    {{ 'Reference' if note.note_type == 'reference' else 'Practice attempt' }}
-                  </span>
-                  <span class="audio-note-author">{{ note.uploader.name if note.uploader else "Someone" }}</span>
-                </div>
-                <audio controls src="{{ url_for('static', filename=note.file_path) }}"></audio>
-              </div>
-            {% endfor %}
-          </div>
-        {% endif %}
-
-        {% if feedback_entries %}
-          <div class="feedback-list">
-            {% for fb in feedback_entries %}
-              <div class="feedback-card">
-                <span class="feedback-label">✨ AI Feedback</span>
-                <p>{{ fb.feedback_text }}</p>
-              </div>
-            {% endfor %}
-          </div>
+        {% if note.file_path.rsplit('.', 1)[-1]|lower in ('mp4', 'mov', 'm4v', 'webm') %}
+          <video controls playsinline preload="metadata" src="{{ url_for('static', filename=note.file_path) }}"></video>
+        {% else %}
+          <audio controls preload="none" src="{{ url_for('static', filename=note.file_path) }}"></audio>
         {% endif %}
       </div>
+    {% endmacro %}
+
+    <div class="conv-tab-panel" data-panel="practice" hidden>
+      <div class="pr">
+
+        <!-- Hero -->
+        <div class="pr-hero">
+          <div class="pr-eq" aria-hidden="true">
+            <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+          </div>
+          <div class="pr-hero-text">
+            <h2>🎙️ Practice Studio</h2>
+            <p>Watch or listen to {{ other_user.name if other_user else "your partner" }}'s reference, record your own take, and let AI coach you on how to sharpen it.</p>
+          </div>
+        </div>
+
+        <!-- Progress -->
+        <ol class="pr-progress">
+          <li class="{{ 'done' if latest_partner_ref else 'active' }}"><span>1</span> Hear the reference</li>
+          <li class="{{ 'done' if my_latest_attempt else ('active' if latest_partner_ref else '') }}"><span>2</span> Record your attempt</li>
+          <li class="{{ 'done' if feedback_done else ('active' if (latest_partner_ref and my_latest_attempt) else '') }}"><span>3</span> Get AI feedback</li>
+        </ol>
+
+        <!-- Step 1: reference music (both directions) -->
+        <div class="pr-grid">
+          <section class="pr-card">
+            <header class="pr-card-head"><span class="pr-step">1</span><h3>🎧 From {{ other_user.name if other_user else "your partner" }}</h3></header>
+            {% if partner_refs %}
+              {{ player(partner_refs[0], "Latest reference · listen first", "gold") }}
+              {% if partner_refs|length > 1 %}
+                <details class="pr-more">
+                  <summary>Earlier references ({{ partner_refs|length - 1 }})</summary>
+                  {% for n in partner_refs[1:] %}{{ player(n, "Earlier reference", "gold") }}{% endfor %}
+                </details>
+              {% endif %}
+            {% else %}
+              <div class="pr-empty">
+                <span class="pr-empty-icon">🎵</span>
+                <p>{{ other_user.name if other_user else "Your partner" }} hasn't shared a reference yet.</p>
+                <small>Nudge them in the chat!</small>
+              </div>
+            {% endif %}
+          </section>
+
+          <section class="pr-card">
+            <header class="pr-card-head"><span class="pr-step pr-step-wine">+</span><h3>🎼 Share your reference</h3></header>
+            <p class="pr-hint">Teaching something too? Share an audio or video reference for {{ other_user.name if other_user else "them" }} to practise with. Short clips (under 2 minutes) work best for AI feedback.</p>
+            {{ dropzone(exchange.id, "reference", "⬆️", "Upload a reference (audio or video)", "Share reference") }}
+            {% for n in my_refs[:2] %}{{ player(n, "Shared by you", "wine") }}{% endfor %}
+            {% if my_refs|length > 2 %}
+              <details class="pr-more">
+                <summary>Older ({{ my_refs|length - 2 }})</summary>
+                {% for n in my_refs[2:] %}{{ player(n, "Shared by you", "wine") }}{% endfor %}
+              </details>
+            {% endif %}
+          </section>
+        </div>
+
+        <!-- Step 2: my attempt -->
+        <section class="pr-card pr-wide {{ '' if latest_partner_ref else 'pr-locked' }}">
+          <header class="pr-card-head"><span class="pr-step">2</span><h3>🎤 Your attempt</h3></header>
+          {% if latest_partner_ref %}
+            <p class="pr-hint">Play {{ other_user.name }}'s reference, then upload your own version — audio or video.</p>
+            {{ dropzone(exchange.id, "practice", "🎶", "Upload your attempt (audio or video)", "Upload attempt") }}
+            {% if my_attempts %}
+              {{ player(my_attempts[0], "Your latest attempt", "gold") }}
+              {% if my_attempts|length > 1 %}
+                <details class="pr-more">
+                  <summary>Previous attempts ({{ my_attempts|length - 1 }})</summary>
+                  {% for n in my_attempts[1:] %}{{ player(n, "Earlier attempt", "gold") }}{% endfor %}
+                </details>
+              {% endif %}
+            {% endif %}
+          {% else %}
+            <div class="pr-lock-msg"><span>🔒</span> Unlocks as soon as {{ other_user.name if other_user else "your partner" }} uploads a reference here in the Practice tab (audio or video).</div>
+          {% endif %}
+
+          {% if partner_attempts %}
+            <details class="pr-more">
+              <summary>{{ other_user.name }}'s attempts ({{ partner_attempts|length }})</summary>
+              {% for n in partner_attempts %}{{ player(n, "Attempt", "wine") }}{% endfor %}
+            </details>
+          {% endif %}
+        </section>
+
+        <!-- Step 3: AI coach -->
+        <section class="pr-card pr-wide pr-ai {{ '' if (latest_partner_ref and my_latest_attempt) else 'pr-locked' }}">
+          <header class="pr-card-head"><span class="pr-step">3</span><h3>✨ AI coach</h3></header>
+          {% if latest_partner_ref and my_latest_attempt %}
+            <p class="pr-hint">The AI watches/listens to {{ other_user.name }}'s reference and your latest attempt, then gives you tips.</p>
+            <form method="POST" action="{{ url_for('main.get_feedback', exchange_id=exchange.id) }}" data-pr-feedback>
+              <button type="submit" class="btn btn-primary pr-ai-btn">
+                <span class="pr-ai-label">{{ '✨ Get fresh feedback' if feedback_done else '✨ Get AI feedback' }}</span>
+                <span class="pr-ai-loading" hidden><i class="pr-spinner"></i> Reviewing both recordings… videos can take a minute</span>
+              </button>
+            </form>
+          {% else %}
+            <div class="pr-lock-msg"><span>🔒</span> Add a reference and your attempt to unlock AI feedback.</div>
+          {% endif %}
+
+          {% if feedback_entries %}
+            <div class="pr-feedback-list">
+              {% for fb in feedback_entries %}
+                {% set who = fb.practice_note.uploader.name if (fb.practice_note and fb.practice_note.uploader) else "Someone" %}
+                <article class="pr-feedback {{ 'pr-feedback-latest' if loop.first else '' }}">
+                  <div class="pr-feedback-head">
+                    <span class="pr-avatar pr-avatar-gold">{{ who[0]|upper }}</span>
+                    <div>
+                      <strong>Feedback for {{ 'you' if (fb.practice_note and fb.practice_note.uploaded_by == current_user.id) else who }}</strong>
+                      <span class="pr-track-label">{{ fb.created_at.strftime('%d %b %Y') }}{% if loop.first %} · newest{% endif %}</span>
+                    </div>
+                  </div>
+                  <div class="pr-feedback-body">{{ fb.feedback_text|format_feedback }}</div>
+                </article>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </section>
+
+      </div>
     </div>
+
+    <script>
+      // Drag-and-drop boxes: show the chosen filename and enable the upload button.
+      document.querySelectorAll("[data-pr-upload]").forEach(function (form) {
+        var input = form.querySelector("input[type=file]");
+        var name = form.querySelector("[data-pr-filename]");
+        var btn = form.querySelector(".pr-upload-btn");
+        var drop = form.querySelector(".pr-drop");
+        var defaultText = name.textContent;
+        input.addEventListener("change", function () {
+          var f = input.files[0];
+          if (f && f.size > 50 * 1024 * 1024) {
+            alert("That file is over 50 MB. Please choose a shorter clip.");
+            input.value = ""; f = null;
+          }
+          name.textContent = f ? "🎵 " + f.name : defaultText;
+          drop.classList.toggle("has-file", !!f);
+          btn.disabled = !f;
+        });
+        ["dragenter", "dragover"].forEach(function (ev) {
+          drop.addEventListener(ev, function () { drop.classList.add("dragging"); });
+        });
+        ["dragleave", "drop"].forEach(function (ev) {
+          drop.addEventListener(ev, function () { drop.classList.remove("dragging"); });
+        });
+        form.addEventListener("submit", function () {
+          btn.disabled = true; btn.textContent = "Uploading…";
+        });
+      });
+      // AI button: show a loading state so nobody double-clicks during the wait.
+      document.querySelectorAll("[data-pr-feedback]").forEach(function (form) {
+        form.addEventListener("submit", function () {
+          var btn = form.querySelector("button");
+          form.querySelector(".pr-ai-label").hidden = true;
+          form.querySelector(".pr-ai-loading").hidden = false;
+          setTimeout(function () { btn.disabled = true; }, 0);
+        });
+      });
+    </script>
   {% endif %}
 
   <!-- === RATING TAB (hidden until selected) === -->

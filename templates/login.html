@@ -7,6 +7,13 @@
     <h1>Welcome back</h1>
     <p class="auth-sub">Log in to see your matches and messages.</p>
 
+    <a href="{{ url_for('auth.google_login') }}" class="btn-google">
+      {% include "_google_icon.html" %}
+      Continue with Google
+    </a>
+
+    <div class="auth-divider"><span>or use your password</span></div>
+
     <form method="POST" class="form">
       <label for="email">Email</label>
       <input type="email" id="email" name="email" placeholder="you@example.com" required>

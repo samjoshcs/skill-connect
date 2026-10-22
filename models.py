@@ -127,3 +127,7 @@ class AIFeedback(db.Model):
     practice_note_id = db.Column(db.Integer, db.ForeignKey("audio_notes.id"), nullable=False)
     feedback_text = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Lets templates show "Feedback for <name>" (the person who made the attempt).
+    reference_note = db.relationship("AudioNote", foreign_keys=[reference_note_id])
+    practice_note = db.relationship("AudioNote", foreign_keys=[practice_note_id])
